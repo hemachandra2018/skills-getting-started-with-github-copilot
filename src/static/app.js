@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
       Object.entries(activities).forEach(([name, details]) => {
         const activityCard = document.createElement("div");
         activityCard.className = "activity-card";
+        activityCard.dataset.activity = name;
 
         const spotsLeft = details.max_participants - details.participants.length;
 
@@ -27,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
           <p><strong>Participants:</strong></p>
           <ul>
-            ${details.participants.map(email => `<li>${email}</li>`).join('')}
+            ${details.participants.map(email => `<li data-email="${email}">${email} <span class="delete">&times;</span></li>`).join('')}
           </ul>
         `;
 
@@ -66,6 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
@@ -82,6 +84,37 @@ document.addEventListener("DOMContentLoaded", () => {
       messageDiv.className = "error";
       messageDiv.classList.remove("hidden");
       console.error("Error signing up:", error);
+    }
+  });
+
+  // Handle delete participant
+  activitiesList.addEventListener('click', async (event) => {
+    if (event.target.classList.contains('delete')) {
+      const li = event.target.closest('li');
+      const email = li.dataset.email;
+      const activityCard = event.target.closest('.activity-card');
+      const activity = activityCard.dataset.activity;
+
+      try {
+        const response = await fetch(
+          `/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`,
+          {
+            method: "POST",
+          }
+        );
+
+        const result = await response.json();
+
+        if (response.ok) {
+          // Refresh activities
+          fetchActivities();
+        } else {
+          alert(result.detail || "An error occurred");
+        }
+      } catch (error) {
+        alert("Failed to unregister. Please try again.");
+        console.error("Error unregistering:", error);
+      }
     }
   });
 
